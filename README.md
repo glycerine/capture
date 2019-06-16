@@ -1,2 +1,3 @@
-# capture
-capture running process output before it finishes
+# capture: a Go library
+
+to capture running process output before it finishes.
