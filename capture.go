@@ -37,12 +37,17 @@ func NewCaptureOuts() *CaptureOuts {
 }
 
 // GetComboOutSoFar can be called by any goroutine at any point to
-// obtain the total combined stdout and stderr thus far. Additional
-// call make yeild more output, with the same prefix.
+// obtain the total combined stdout and stderr thus far, as a
+// single slice of strings. Subsequent calls will yield
+// a longer slice if new output has been added, but the initial
+// lines will still be present. Eventually all the output, both
+// os.Stdout and os.Stderr for the child process will be stored and returned.
 //
 // If getIsStdErrorSlice is false, the returned isStdErr will be nil.
-// Otherwise we fill out the isStdErr slice to correspond, match,
-// and inform the res slice.
+// Otherwise we fill out the isStdErr slice to correspond to
+// res. If isStdErr[i] is true, then res[i] is from os.Stderr.
+// Otherwise res[i] is from os.Stdout.
+//
 func (c *CaptureOuts) GetComboOutSoFar(getIsStdErrorSlice bool) (res []string, isStdErr []bool) {
 	c.mut.Lock()
 	//vv("top of GetComboOutSoFar, c.lines='%#v'", c.lines)
@@ -67,6 +72,14 @@ func (c *CaptureOuts) BytesSoFar() []byte {
 	return b.Bytes()
 }
 
+// Exec runs the specified arg0 process path with
+// args as inputs, and blocks until the child
+// process is complete. It should typically be
+// run on a separate goroutine from that which
+// will monitor the process with c.BytesSoFar()
+// or c.GetComboOutSoFar() calls. When Exec
+// is finished, it will set c.Err and then close
+// the c.Done channel.
 func (c *CaptureOuts) Exec(arg0 string, args ...string) error {
 	cmd := exec.Command(arg0, args...)
 	defer close(c.Done)
